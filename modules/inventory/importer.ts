@@ -1,10 +1,11 @@
 export function parseCardLines(lines: string) {
-  return Array.from(
-    new Set(
-      lines
-        .split(/\r?\n/)
-        .map((item) => item.trim())
-        .filter(Boolean),
-    ),
-  );
+  const allLines = lines
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const unique = Array.from(new Set(allLines));
+  const removedCount = allLines.length - unique.length;
+
+  return { items: unique, removedCount };
 }

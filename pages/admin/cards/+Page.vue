@@ -198,11 +198,27 @@ async function handleCreateCard() {
   message.value = "";
   errorMessage.value = "";
   try {
-    await onCreateCard({
+    const result = await onCreateCard({
       productId: Number(singleForm.productId),
       content: singleForm.content,
       batchNo: singleForm.batchNo,
     });
+    // 检查是否需要确认重复卡密
+    if (result && typeof result === 'object' && 'requiresConfirmation' in result && result.requiresConfirmation) {
+      const ok = await confirmRef.value?.confirm({
+        title: "卡密重复",
+        message: result.message,
+        confirmText: "继续添加",
+      });
+      if (!ok) return;
+      // 用户确认后，强制添加
+      await onCreateCard({
+        productId: Number(singleForm.productId),
+        content: singleForm.content,
+        batchNo: singleForm.batchNo,
+        force: true,
+      });
+    }
     singleForm.content = "";
     singleForm.batchNo = "";
     addModalRef.value?.close();
@@ -217,11 +233,49 @@ async function handleImportCards() {
   message.value = "";
   errorMessage.value = "";
   try {
-    const result = await onImportCards({
+    let result = await onImportCards({
       productId: Number(importForm.productId),
       lines: importForm.lines,
       batchNo: importForm.batchNo,
     });
+    // Step 1: 检查输入编辑框是否有重复项目
+    if (result && typeof result === 'object' && 'requiresConfirmation' in result && result.requiresConfirmation && result.type === 'input_duplicates') {
+      const ok = await confirmRef.value?.confirm({
+        title: "输入重复",
+        message: result.message,
+        confirmText: "删除重复",
+      });
+      if (ok) {
+        // 点击"删除重复" → 回显去重内容到编辑框，停止
+        importForm.lines = result.items.join('\n');
+        return;
+      }
+      // 点击"取消" → 跳过输入去重，继续检查数据库重复
+      result = await onImportCards({
+        productId: Number(importForm.productId),
+        lines: importForm.lines,
+        batchNo: importForm.batchNo,
+        skipInputDedup: true,
+      });
+    }
+
+    // Step 2: 检查数据库是否有重复卡密
+    if (result && typeof result === 'object' && 'requiresConfirmation' in result && result.requiresConfirmation && result.type === 'db_duplicates') {
+      const ok = await confirmRef.value?.confirm({
+        title: "卡密重复",
+        message: result.message,
+        confirmText: "继续添加",
+      });
+      if (!ok) return;
+      // 点击"继续添加" → 强制导入
+      result = await onImportCards({
+        productId: Number(importForm.productId),
+        lines: importForm.lines,
+        batchNo: importForm.batchNo,
+        skipInputDedup: true,
+        force: true,
+      });
+    }
     importForm.lines = "";
     importForm.batchNo = "";
     importModalRef.value?.close();

@@ -101,3 +101,22 @@ export function deleteCardById(prisma: PrismaClient, id: number) {
     where: { id, status: "UNUSED" },
   });
 }
+
+export async function findExistingCardContents(
+  prisma: PrismaClient,
+  productId: number,
+  contents: string[],
+): Promise<string[]> {
+  const existingCards = await prisma.card.findMany({
+    where: {
+      productId,
+      content: {
+        in: contents,
+      },
+    },
+    select: {
+      content: true,
+    },
+  });
+  return existingCards.map((card) => card.content);
+}

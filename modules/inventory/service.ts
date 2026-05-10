@@ -3,7 +3,7 @@ import type { PrismaClient } from "../../generated/prisma/client";
 import { badRequestError } from "../../lib/app-error";
 import { getAdminContext, logAdminOperation } from "../auth/service";
 import { parseCardLines } from "./importer";
-import { countCardStats, createCardRecord, createManyCards, deleteCardById, deleteUnusedCardsByProduct, listCardRecords, listCardRecordsPaged } from "./repository";
+import { countCardStats, createCardRecord, createManyCards, deleteCardById, deleteUnusedCardsByProduct, listCardRecords, listCardRecordsPaged, findExistingCardContents } from "./repository";
 
 function getInventoryContext() {
   return getContext<{ prisma: PrismaClient }>();
@@ -53,7 +53,7 @@ export async function getAdminCards(prisma?: PrismaClient) {
   }));
 }
 
-export async function createCard(input: { productId: number; content: string; batchNo?: string }) {
+export async function createCard(input: { productId: number; content: string; batchNo?: string; force?: boolean }) {
   const adminContext = getAdminContext();
   const { prisma } = adminContext;
   const adminId = Number(adminContext.session?.user?.id);
@@ -61,6 +61,24 @@ export async function createCard(input: { productId: number; content: string; ba
 
   if (!content) {
     throw badRequestError("卡密内容不能为空", "CARD_CONTENT_REQUIRED");
+  }
+
+  // 验证商品是否存在
+  const product = await prisma.product.findUnique({ where: { id: input.productId } });
+  if (!product) {
+    throw badRequestError('请选择要导入卡密的商品', "PRODUCT_NOT_FOUND");
+  }
+
+  // 检查数据库中是否存在重复卡密
+  const existingContents = await findExistingCardContents(prisma, input.productId, [content]);
+  if (existingContents.length > 0 && !input.force) {
+    return {
+      requiresConfirmation: true,
+      message: existingContents.length === 1
+        ? `该卡密「${existingContents[0]}」已存在于系统中，是否继续添加？`
+        : `该卡密「${existingContents[0]}」已存在于系统中共有 ${existingContents.length} 条记录，是否继续添加？`,
+      existingContent: existingContents,
+    };
   }
 
   const card = await createCardRecord(prisma, {
@@ -95,14 +113,45 @@ export async function createCard(input: { productId: number; content: string; ba
   };
 }
 
-export async function importCards(input: { productId: number; lines: string; batchNo?: string }) {
+export async function importCards(input: { productId: number; lines: string; batchNo?: string; skipInputDedup?: boolean; force?: boolean }) {
   const adminContext = getAdminContext();
   const { prisma } = adminContext;
   const adminId = Number(adminContext.session?.user?.id);
-  const items = parseCardLines(input.lines);
+  const { items, removedCount } = parseCardLines(input.lines);
 
   if (!items.length) {
     throw badRequestError("没有可导入的卡密内容", "CARD_IMPORT_EMPTY");
+  }
+
+  // 检测输入编辑框是否有重复项目（skipInputDedup=true 时跳过）
+  if (removedCount > 0 && !input.skipInputDedup) {
+    return {
+      requiresConfirmation: true,
+      type: "input_duplicates" as const,
+      message: "您当前输入的卡密重复，是否删除重复卡密？",
+      removedCount,
+      items,
+    };
+  }
+
+  // 验证商品是否存在
+  const product = await prisma.product.findUnique({ where: { id: input.productId } });
+  if (!product) {
+    throw badRequestError('请选择要导入卡密的商品', "PRODUCT_NOT_FOUND");
+  }
+
+  // 检测数据库是否有重复卡密（force=true 时跳过）
+  const existingContents = await findExistingCardContents(prisma, input.productId, items);
+  if (existingContents.length > 0 && !input.force) {
+    return {
+      requiresConfirmation: true,
+      type: "db_duplicates" as const,
+      message: existingContents.length === 1
+        ? `该卡密「${existingContents[0]}」已存在于系统中，是否继续添加？`
+        : `该卡密「${existingContents[0]}」已存在于系统中共有 ${existingContents.length} 条记录，是否继续添加？`,
+      existingContents,
+      items,
+    };
   }
 
   await createManyCards(
