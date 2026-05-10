@@ -9,6 +9,13 @@ export async function listHomeProducts(prisma: PrismaClient): Promise<ProductSum
     },
     include: {
       category: true,
+      _count: {
+        select: {
+          cards: {
+            where: { status: "UNUSED" },
+          },
+        },
+      },
     },
     orderBy: [{ sort: "asc" }, { id: "desc" }],
     take: 12,
@@ -22,6 +29,8 @@ export async function listHomeProducts(prisma: PrismaClient): Promise<ProductSum
     slug: item.slug,
     coverImage: item.coverImage,
     price: item.price,
+    stockMode: item.stockMode as "FINITE" | "UNLIMITED",
+    availableStock: item.stockMode === "UNLIMITED" ? -1 : item._count.cards,
   }));
 }
 
@@ -99,6 +108,15 @@ export async function getProductDetailBySlug(prisma: PrismaClient, slug: string)
       slug,
       status: "ACTIVE",
     },
+    include: {
+      _count: {
+        select: {
+          cards: {
+            where: { status: "UNUSED" },
+          },
+        },
+      },
+    },
   });
 
   if (!record) {
@@ -119,5 +137,7 @@ export async function getProductDetailBySlug(prisma: PrismaClient, slug: string)
     maxBuy: record.maxBuy,
     sort: record.sort,
     purchaseNote: record.purchaseNote,
+    stockMode: record.stockMode as "FINITE" | "UNLIMITED",
+    availableStock: record.stockMode === "UNLIMITED" ? -1 : record._count.cards,
   };
 }

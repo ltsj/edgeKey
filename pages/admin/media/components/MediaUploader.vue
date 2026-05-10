@@ -43,10 +43,10 @@
             :disabled="!webpSupported"
             class="checkbox checkbox-primary checkbox-sm"
           />
-          <span class="text-sm text-base-content/70">图片自动压缩为 WebP</span>
+          <span class="text-sm text-base-content/70">图片自动压缩为WebP</span>
         </label>
         <p v-if="!webpSupported" class="text-xs text-warning">当前浏览器环境不支持 WebP 压缩</p>
-        <p class="text-xs text-base-content/50">支持图片、视频、音频、PDF 等文件格式</p>
+        <p class="text-xs text-base-content/50">支持上传图片、视频、音频、PDF 等格式文件</p>
       </div>
     </div>
 

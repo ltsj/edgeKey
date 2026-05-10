@@ -120,9 +120,13 @@
             
             <!-- 底部画师/版权说明文字 -->
             <div class="mt-3 text-center">
-              <!-- <p class="text-[10px] font-mono tracking-widest text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">
-                Illus. {{ product.slug }} ©2026 EdgeKey
-              </p> -->
+              <div
+                v-if="product.stockMode === 'FINITE' && product.availableStock >= 0 && product.availableStock < 10"
+                class="absolute left-5 text-sm font-bold tracking-wide px-2 py-1 rounded-full shadow-lg border"
+                :class="product.availableStock === 0 ? 'bg-gray-800/90 text-gray-200 border-gray-600' : 'bg-amber-500/90 text-white border-amber-400 animate-pulse'"
+              >
+                {{ product.availableStock === 0 ? '已售罄' : `库存紧张(${product.availableStock})` }}
+              </div>
               <div class="flex items-end gap-0.5 font-black text-red-500 absolute right-6" style="text-shadow: 2px 2px 0 #fff, -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 2px 2px 4px rgba(0,0,0,0.3);">
                 <span class="text-sm font-bold italic text-red-600 mb-1">¥</span>
                 <span class="text-3xl italic leading-none tracking-tighter">{{ formatCents(product.price) }}</span>

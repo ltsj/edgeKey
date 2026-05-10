@@ -71,7 +71,13 @@
 
 
 
-          <AppButton variant="primary" :loading="submitting" :disabled="!paymentMethods.length" @click="handleCreateOrder">提交订单</AppButton>
+          <p v-if="product.stockMode === 'FINITE' && product.availableStock >= 0 && product.availableStock < 10" class="text-sm" :class="product.availableStock === 0 ? 'text-error' : 'text-warning'">
+            {{ product.availableStock === 0 ? '商品都卖光了，看看其他商品' : `库存紧张，仅剩 ${product.availableStock} 件` }}
+          </p>
+
+          <AppButton variant="primary" :loading="submitting" :disabled="!paymentMethods.length || (product.stockMode === 'FINITE' && product.availableStock === 0)" @click="handleCreateOrder">
+            {{ product.stockMode === 'FINITE' && product.availableStock === 0 ? '已售罄' : '提交订单' }}
+          </AppButton>
           <p v-if="!paymentMethods.length" class="text-sm text-warning">当前没有可用支付方式，请联系管理员启用支付配置。</p>
           <p v-if="errorMessage" class="text-sm text-error">{{ errorMessage }}</p>
         </div>

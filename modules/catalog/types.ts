@@ -6,6 +6,8 @@ export interface ProductSummary {
   slug: string;
   coverImage?: string | null;
   price: number;
+  stockMode: "FINITE" | "UNLIMITED";
+  availableStock: number;
 }
 
 export interface CategorySummary {
