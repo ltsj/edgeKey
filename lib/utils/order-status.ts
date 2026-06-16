@@ -53,6 +53,8 @@ export function getPaymentProviderLabel(provider: string) {
       return "Stripe";
     case "BEPUSDT":
       return "BEpusdt";
+    case "FREE_PAY":
+      return "免费";
     default:
       return provider;
   }

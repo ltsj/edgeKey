@@ -1,4 +1,4 @@
-export type PaymentProvider = "BEPUSDT" | "EPAY" | "ALIPAY" | "ALIPAY_FACE" | "STRIPE";
+export type PaymentProvider = "BEPUSDT" | "EPAY" | "ALIPAY" | "ALIPAY_FACE" | "STRIPE" | "FREE_PAY";
 
 export interface PaymentMethodItem {
   provider: PaymentProvider;

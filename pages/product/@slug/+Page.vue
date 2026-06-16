@@ -70,7 +70,7 @@
             <textarea v-model="form.buyerNote" class="textarea textarea-bordered w-full" rows="3" placeholder="可以留下QQ号、微信等联系方式"></textarea>
           </label>
 
-          <div class="space-y-2">
+          <div v-if="!isFreeOrder" class="space-y-2">
             <div class="text-sm font-medium">支付方式</div>
             <div class="grid gap-3">
               <label v-for="method in paymentMethods" :key="method.provider" class="rounded-box border border-base-300 p-4">
@@ -82,7 +82,7 @@
             </div>
           </div>
 
-          <div v-if="form.paymentProvider === 'EPAY'" class="space-y-2">
+          <div v-if="!isFreeOrder && form.paymentProvider === 'EPAY'" class="space-y-2">
             <div class="text-sm font-medium">易支付渠道</div>
             <div class="grid gap-3 md:grid-cols-2">
               <label v-for="channel in epayChannels" :key="channel.value" class="rounded-box border border-base-300 p-4">
@@ -129,10 +129,10 @@
           <p v-else-if="product.deliveryType === 'FIXED_CARD'" class="text-sm text-success">自动发货，库存充足。</p>
           <p v-else-if="product.deliveryType === 'MANUAL'" class="text-sm text-success">{{ product.manualDeliveryHint || '支付后，客服将尽快为您处理订单，请耐心等待。' }}</p>
 
-          <AppButton variant="primary" :loading="submitting" :disabled="!paymentMethods.length || (product.deliveryType === 'CARD_AUTO' && product.availableStock === 0)" @click="handleCreateOrder">
-            {{ product.deliveryType === 'CARD_AUTO' && product.availableStock === 0 ? '已售罄' : '提交订单' }}
+          <AppButton variant="primary" :loading="submitting" :disabled="(!isFreeOrder && !paymentMethods.length) || (product.deliveryType === 'CARD_AUTO' && product.availableStock === 0)" @click="handleCreateOrder">
+            {{ product.deliveryType === 'CARD_AUTO' && product.availableStock === 0 ? '已售罄' : isFreeOrder ? '免费获取' : '提交订单' }}
           </AppButton>
-          <p v-if="!paymentMethods.length" class="text-sm text-warning">当前没有可用支付方式，请联系管理员启用支付配置。</p>
+          <p v-if="!isFreeOrder && !paymentMethods.length" class="text-sm text-warning">当前没有可用支付方式，请联系管理员启用支付配置。</p>
           <p v-if="errorMessage" class="text-sm text-error">{{ errorMessage }}</p>
         </div>
       </div>
@@ -143,7 +143,7 @@
 <script setup lang="ts">
 import AppButton from "../../../components/AppButton.vue";
 import { normalizeTelefuncError } from "../../../lib/app-error";
-import { reactive, ref } from "vue";
+import { reactive, ref, computed } from "vue";
 import { useData } from "vike-vue/useData";
 import { isEmail } from "../../../lib/validators/email";
 import { formatCents } from "../../../lib/utils/money";
@@ -213,6 +213,10 @@ watch(() => form.discountCode, () => {
 
 const descriptionHtml = formatDescriptionHtml(product?.description || "");
 
+const isFreeOrder = computed(() => {
+  return discountPreview.valid && discountPreview.finalAmount === 0;
+});
+
 async function handlePreviewDiscount() {
   if (!product || !form.discountCode.trim()) return;
 
@@ -239,7 +243,8 @@ async function handlePreviewDiscount() {
 async function handleCreateOrder() {
   if (!product || submitting.value) return;
 
-  if (!form.paymentProvider) {
+  // 免费订单不需要支付方式
+  if (!isFreeOrder.value && !form.paymentProvider) {
     errorMessage.value = "当前没有可用支付方式，请联系管理员启用支付配置。";
     return;
   }
@@ -259,11 +264,14 @@ async function handleCreateOrder() {
   errorMessage.value = "";
 
   try {
+    // 免费订单使用 FREE_PAY 作为占位符（服务端会跳过支付）
+    const paymentProvider = isFreeOrder.value ? "FREE_PAY" : form.paymentProvider;
+    
     const result = await onCreateOrder({
       productId: product.id,
       quantity: form.quantity,
-      paymentProvider: form.paymentProvider,
-      paymentChannel: form.paymentProvider === "EPAY" || form.paymentProvider === "ALIPAY" ? form.paymentChannel : undefined,
+      paymentProvider,
+      paymentChannel: paymentProvider === "EPAY" || paymentProvider === "ALIPAY" ? form.paymentChannel : undefined,
       contactType: "EMAIL",
       contactValue: contactEmail,
       buyerNote: form.buyerNote,

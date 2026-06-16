@@ -6,6 +6,7 @@ import { validateOrderInput } from "../../lib/validators/order";
 import { getAdminContext, logAdminOperation } from "../auth/service";
 import { getAdminProductById } from "../catalog/service";
 import { createPaymentForOrder, handlePaymentNotify } from "../payment/service";
+import { deliverOrder } from "../delivery/service";
 import { closeOrderRecord, createOrderRecord, findOrderById, findOrderWithProduct, listOrderRecords } from "./repository";
 import { generateOrderNo, generateQueryToken } from "./number";
 import { logger } from "../../lib/logger";
@@ -96,7 +97,81 @@ export async function createOrder(input: {
     discountCodeStr = discountCode.code;
   }
 
-  const amount = originalAmount - discountAmount;
+  const amount = Math.max(0, originalAmount - discountAmount);
+
+  // 0 元订单直接标记为已支付并发货，跳过支付流程
+  if (amount === 0) {
+    const order = await createOrderRecord(prisma, {
+      orderNo,
+      queryToken,
+      productId: product.id,
+      productNameSnapshot: product.name,
+      unitPrice: product.price,
+      quantity,
+      amount: 0,
+      contactType: input.contactType,
+      contactValue,
+      buyerNote: input.buyerNote?.trim() || null,
+      paymentProvider: input.paymentProvider,
+      paymentChannel,
+      discountCodeId,
+      discountCodeStr,
+      originalAmount: discountAmount > 0 ? originalAmount : null,
+      discountAmount: discountAmount > 0 ? discountAmount : null,
+    });
+
+    // 标记为已支付
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: "PAID",
+        paymentStatus: "PAID",
+        paidAt: new Date(),
+      },
+    });
+
+    // 记录 0 元订单支付日志
+    await prisma.paymentLog.create({
+      data: {
+        orderId: order.id,
+        provider: input.paymentProvider,
+        orderNo,
+        eventType: "FREE_ORDER",
+        rawPayload: JSON.stringify({ amount: 0, discountCode: discountCodeStr, discountAmount }),
+        verifyStatus: "VERIFIED",
+        message: "0 元订单，自动完成",
+      },
+    });
+
+    // 递增折扣码使用次数
+    if (discountCodeId) {
+      await applyDiscountCode(discountCodeId, prisma);
+    }
+
+    // 执行发货
+    try {
+      await deliverOrder(prisma, order.orderNo);
+    } catch (error) {
+      logger.error(error instanceof Error ? error : new Error(String(error)), {
+        event: "order.free_delivery_failed",
+        orderNo,
+      });
+    }
+
+    return {
+      id: order.id,
+      orderNo: order.orderNo,
+      queryToken: order.queryToken,
+      amount: 0,
+      originalAmount: order.originalAmount,
+      discountAmount: order.discountAmount,
+      discountCodeStr: order.discountCodeStr,
+      paymentProvider: order.paymentProvider,
+      paymentChannel: order.paymentChannel,
+      paymentStatus: "PAID" as const,
+      payUrl: undefined,
+    };
+  }
 
   const order = await createOrderRecord(prisma, {
     orderNo,

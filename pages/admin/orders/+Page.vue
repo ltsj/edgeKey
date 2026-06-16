@@ -14,6 +14,7 @@
           <option value="ALIPAY_FACE">支付宝当面付</option>
           <option value="STRIPE">Stripe</option>
           <option value="BEPUSDT">BEpusdt</option>
+          <option value="FREE_PAY">免费</option>
         </select>
         <select v-model="filter.status" class="select select-sm select-bordered w-32">
           <option value="">全部订单状态</option>
