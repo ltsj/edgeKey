@@ -53,10 +53,11 @@ import { onSavePaymentConfig } from "./savePaymentConfig.telefunc";
 import BEpusdtForm from "./forms/BEpusdtForm.vue";
 import EpayForm from "./forms/EpayForm.vue";
 import AlipayForm from "./forms/AlipayForm.vue";
+import AlipayFaceForm from "./forms/AlipayFaceForm.vue";
 import StripeForm from "./forms/StripeForm.vue";
 import type { PaymentProvider, PaymentConfigValue } from "../../../modules/payment/types";
 
-const formMap = { BEPUSDT: BEpusdtForm, EPAY: EpayForm, ALIPAY: AlipayForm, STRIPE: StripeForm };
+const formMap = { BEPUSDT: BEpusdtForm, EPAY: EpayForm, ALIPAY: AlipayForm, ALIPAY_FACE: AlipayFaceForm, STRIPE: StripeForm };
 
 const emit = defineEmits<{ saved: [value: typeof props.initialValue] }>();
 
@@ -77,7 +78,7 @@ const form = reactive({
 const extraFields = reactive(
   props.provider === 'BEPUSDT'
     ? { appId: props.initialValue?.appId ?? '', appSecret: props.initialValue?.appSecret ?? '' }
-    : props.provider === 'ALIPAY'
+    : props.provider === 'ALIPAY' || props.provider === 'ALIPAY_FACE'
       ? { alipayAppId: props.initialValue?.alipayAppId ?? '', alipayPrivateKey: props.initialValue?.alipayPrivateKey ?? '', alipayPublicKey: props.initialValue?.alipayPublicKey ?? '' }
       : props.provider === 'STRIPE'
         ? { stripeSecretKey: props.initialValue?.stripeSecretKey ?? '', stripeWebhookSecret: props.initialValue?.stripeWebhookSecret ?? '', stripeCurrency: props.initialValue?.stripeCurrency ?? 'cny' }
@@ -106,7 +107,7 @@ async function handleSave() {
       (extraFields as any).stripeSecretKey = (result as any).stripeSecretKey ?? '';
       (extraFields as any).stripeWebhookSecret = (result as any).stripeWebhookSecret ?? '';
       (extraFields as any).stripeCurrency = (result as any).stripeCurrency ?? 'cny';
-    } else if (props.provider === 'ALIPAY') {
+    } else if (props.provider === 'ALIPAY' || props.provider === 'ALIPAY_FACE') {
       (extraFields as any).alipayAppId = (result as any).alipayAppId ?? '';
       (extraFields as any).alipayPrivateKey = (result as any).alipayPrivateKey ?? '';
       (extraFields as any).alipayPublicKey = (result as any).alipayPublicKey ?? '';

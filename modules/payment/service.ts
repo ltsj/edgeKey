@@ -12,6 +12,7 @@ import type { PaymentConfigValue } from "./types";
 import { createBepusdtAdapter } from "./bepusdt";
 import { createEpayAdapter } from "./epay";
 import { createAlipayAdapter, queryAlipayTrade } from "./alipay";
+import { createAlipayFaceAdapter } from "./alipay-face";
 import { createStripeAdapter } from "./stripe";
 import { deliverOrder } from "../delivery/service";
 import { findOrderRecord, updateOrderPayment } from "../order/repository";
@@ -47,6 +48,17 @@ const defaultPaymentConfigs: Record<PaymentProvider, PaymentConfigValue> = {
     alipayPublicKey: "",
     notifyUrl: "/api/payments/alipay/notify",
     returnUrl: "/order/{orderNo}?token={token}",
+  },
+  ALIPAY_FACE: {
+    provider: "ALIPAY_FACE",
+    name: "支付宝当面付",
+    isEnabled: false,
+    baseUrl: "https://openapi.alipay.com",
+    alipayAppId: "",
+    alipayPrivateKey: "",
+    alipayPublicKey: "",
+    notifyUrl: "/api/payments/alipay-face/notify",
+    returnUrl: "",
   },
   STRIPE: {
     provider: "STRIPE",
@@ -165,6 +177,9 @@ function createProviderAdapter(config: PaymentConfigValue) {
   }
   if (config.provider === "ALIPAY") {
     return createAlipayAdapter(config);
+  }
+  if (config.provider === "ALIPAY_FACE") {
+    return createAlipayFaceAdapter(config);
   }
   if (config.provider === "STRIPE") {
     return createStripeAdapter(config);
@@ -362,8 +377,9 @@ export async function queryAlipayPayment(orderNo: string, prisma?: PrismaClient)
   if (!order) throw notFoundError("订单不存在", "ORDER_NOT_FOUND");
   if (order.paymentStatus === "PAID") return { alreadyPaid: true };
 
+  const provider = order.paymentProvider === "ALIPAY_FACE" ? "ALIPAY_FACE" : "ALIPAY";
   const configs = await getPaymentConfigs(client);
-  const config = configs["ALIPAY"];
+  const config = configs[provider];
   const result = await queryAlipayTrade(config, orderNo);
 
   if (result.isPaid) {
@@ -376,17 +392,18 @@ export async function queryAlipayPayment(orderNo: string, prisma?: PrismaClient)
     if (updated) {
       await createPaymentLogRecord(client, {
         orderId: order.id,
-        provider: "ALIPAY",
+        provider,
         orderNo,
         paymentOrderNo: result.tradeNo,
         eventType: "QUERY_PAID",
-        rawPayload: JSON.stringify(result),verifyStatus: "VERIFIED",
+        rawPayload: JSON.stringify(result),
+        verifyStatus: "VERIFIED",
         message: "paid via query",
       });
       try {
         await deliverOrder(client, orderNo);
       } catch (error) {
-        logger.error(error instanceof Error ? error : String(error), {
+        logger.error(error instanceof Error ? error : new Error(String(error)), {
           event: "payment.alipay_query.delivery_failed",
           orderNo,
         });

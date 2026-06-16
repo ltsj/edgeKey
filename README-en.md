@@ -22,7 +22,7 @@ EdgeKey is a full-stack card key shop system built with the Vike framework, depl
 
 ## Documentation
 - [Quick Deploy Guide](./docs/fast_deploy/start.md)
-- Payment: [BEpusdt](./docs/pay/bepusdt/start.md), [Epay](./docs/pay/epay/start.md), [Alipay](./docs/pay/alipay/start.md), [Stripe](./docs/pay/stripe/start.md)
+- Payment: [BEpusdt](./docs/pay/bepusdt/start.md), [Epay](./docs/pay/epay/start.md), [Alipay](./docs/pay/alipay/start.md), [Alipay Face Pay](./docs/pay/alipay-face/start.md), [Stripe](./docs/pay/stripe/start.md)
 - [Changelog](./CHANGELOG.md)
 
 ## Screenshots

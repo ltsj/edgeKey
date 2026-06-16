@@ -191,6 +191,7 @@ let mobile = false;
 function getDefaultPaymentChannel(provider: PaymentProvider | "") {
   if (provider === "EPAY") return "alipay";
   if (provider === "ALIPAY") return mobile ? "alipay_h5" : "alipay_pc";
+  if (provider === "ALIPAY_FACE") return "";
   return "";
 }
 
@@ -278,7 +279,7 @@ async function handleCreateOrder() {
       paymentStatus: result.paymentStatus ?? 'UNPAID',
     });
 
-    if (result.payUrl) {
+    if (result.payUrl && form.paymentProvider !== 'ALIPAY_FACE') {
       window.location.href = result.payUrl;
       return;
     }

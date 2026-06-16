@@ -11,6 +11,7 @@
           <option value="">全部支付方式</option>
           <option value="EPAY">易支付</option>
           <option value="ALIPAY">支付宝</option>
+          <option value="ALIPAY_FACE">支付宝当面付</option>
           <option value="STRIPE">Stripe</option>
           <option value="BEPUSDT">BEpusdt</option>
         </select>

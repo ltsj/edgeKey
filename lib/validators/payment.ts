@@ -8,6 +8,9 @@ export function validatePaymentConfigInput(input: {
   appSecret?: string;
   pid?: string;
   key?: string;
+  alipayAppId?: string;
+  alipayPrivateKey?: string;
+  alipayPublicKey?: string;
 }) {
   const name = input.name?.trim() || "";
   if (!name) {
@@ -29,6 +32,18 @@ export function validatePaymentConfigInput(input: {
     }
     if (!(input.key?.trim())) {
       throw badRequestError("启用 Epay 时必须填写 Key", "EPAY_KEY_REQUIRED");
+    }
+  }
+
+  if ((input.provider === "ALIPAY" || input.provider === "ALIPAY_FACE") && input.isEnabled !== false) {
+    if (!(input.alipayAppId?.trim())) {
+      throw badRequestError("启用支付宝时必须填写 App ID", "ALIPAY_APP_ID_REQUIRED");
+    }
+    if (!(input.alipayPrivateKey?.trim())) {
+      throw badRequestError("启用支付宝时必须填写应用私钥", "ALIPAY_PRIVATE_KEY_REQUIRED");
+    }
+    if (!(input.alipayPublicKey?.trim())) {
+      throw badRequestError("启用支付宝时必须填写支付宝公钥", "ALIPAY_PUBLIC_KEY_REQUIRED");
     }
   }
 

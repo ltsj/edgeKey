@@ -40,7 +40,24 @@
             <div class="flex justify-between"><span>支付方式</span><span>{{ getPaymentProviderLabel(order.paymentProvider) }}</span></div>
           </div>
           <div v-if="order.paymentStatus === 'UNPAID'" class="mt-4">
-            <AppButton size="sm" variant="primary" :loading="paying" @click="handleContinuePay">继续支付</AppButton>
+            <AppButton v-if="order.paymentProvider !== 'ALIPAY_FACE'" size="sm" variant="primary" :loading="paying" @click="handleContinuePay">继续支付</AppButton>
+            <div v-if="order.paymentProvider === 'ALIPAY_FACE'" class="space-y-3">
+              <div v-if="qrCodeUrl">
+                <p class="text-sm text-base-content/70">请使用支付宝扫描下方二维码完成支付：</p>
+                <div class="flex justify-center my-3">
+                  <img :src="qrCodeUrl" alt="支付宝当面付二维码" class="w-48 h-48 rounded-box border border-base-300" />
+                </div>
+                <p class="text-xs text-center" :class="qrExpired ? 'text-error' : 'text-base-content/50'">
+                  {{ qrExpired ? '二维码已过期' : `二维码有效期：${qrCountdown}` }}
+                </p>
+              </div>
+              <div v-if="paying && !qrCodeUrl" class="flex justify-center py-8">
+                <span class="loading loading-spinner loading-lg"></span>
+              </div>
+              <AppButton size="sm" variant="outline" :loading="paying" @click="handleRefreshQrCode">
+                {{ qrExpired ? '重新生成二维码' : '刷新二维码' }}
+              </AppButton>
+            </div>
             <p v-if="paymentError" class="mt-2 text-sm text-error">{{ paymentError }}</p>
           </div>
         </div>
@@ -61,7 +78,7 @@
 
 <script setup lang="ts">
 import { normalizeTelefuncError } from "../../../lib/app-error";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import AppButton from "../../../components/AppButton.vue";
 import { useData } from "vike-vue/useData";
 import { formatCents } from "../../../lib/utils/money";
@@ -75,6 +92,62 @@ import type { Data } from "./+data";
 const { order } = useData<Data>();
 const paying = ref(false);
 const paymentError = ref("");
+const qrCodeUrl = ref("");
+const qrCountdown = ref("");
+const qrExpired = ref(false);
+
+const QR_EXPIRE_MS = 2 * 60 * 60 * 1000; // 2 hours
+const POLL_INTERVAL = 5000; // 5 seconds
+
+let qrGeneratedAt = 0;
+let countdownTimer: ReturnType<typeof setInterval> | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+function startCountdown() {
+  stopCountdown();
+  qrExpired.value = false;
+  qrGeneratedAt = Date.now();
+
+  countdownTimer = setInterval(() => {
+    const remaining = QR_EXPIRE_MS - (Date.now() - qrGeneratedAt);
+    if (remaining <= 0) {
+      qrExpired.value = true;
+      qrCountdown.value = "00:00";
+      stopCountdown();
+      return;
+    }
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    qrCountdown.value = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }, 1000);
+}
+
+function stopCountdown() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+}
+
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    if (!order || order.paymentStatus !== "UNPAID") return;
+    try {
+      const result = await onQueryAlipayPayment({ orderNo: order.orderNo });
+      if (result.isPaid || result.alreadyPaid) {
+        window.location.reload();
+      }
+    } catch {}
+  }, POLL_INTERVAL);
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
 
 onMounted(async () => {
   if (!order) return;
@@ -90,6 +163,12 @@ onMounted(async () => {
     deliveryStatus: order.deliveryStatus,
   });
 
+  if (order.paymentStatus === 'UNPAID' && order.paymentProvider === 'ALIPAY_FACE') {
+    await generateQrCode();
+    startPolling();
+    return;
+  }
+
   if (order.paymentStatus !== "UNPAID" || order.paymentProvider !== "ALIPAY") return;
   const params = new URLSearchParams(window.location.search);
   if (!params.get("out_trade_no")) return;
@@ -98,6 +177,37 @@ onMounted(async () => {
     if (result.isPaid || result.alreadyPaid) window.location.reload();
   } catch {}
 });
+
+onUnmounted(() => {
+  stopCountdown();
+  stopPolling();
+});
+
+async function generateQrCode() {
+  if (!order) return;
+
+  paying.value = true;
+  paymentError.value = "";
+
+  try {
+    const result = await onCreatePayment({ orderId: order.id });
+    if (result.payUrl) {
+      const text = encodeURIComponent(result.payUrl);
+      qrCodeUrl.value = `https://quickchart.io/qr?text=${text}&size=300&ecLevel=M`;
+      startCountdown();
+      return;
+    }
+    paymentError.value = "未获取到支付二维码";
+  } catch (error) {
+    paymentError.value = normalizeTelefuncError(error, "生成二维码失败");
+  } finally {
+    paying.value = false;
+  }
+}
+
+async function handleRefreshQrCode() {
+  await generateQrCode();
+}
 
 async function handleContinuePay() {
   if (!order) return;

@@ -3,6 +3,7 @@ import { registerHealthRoutes } from "./health";
 import { registerBepusdtRoutes } from "./payment-bepusdt";
 import { registerEpayRoutes } from "./payment-epay";
 import { registerAlipayRoutes } from "./payment-alipay";
+import { registerAlipayFaceRoutes } from "./payment-alipay-face";
 import { registerStripeRoutes } from "./payment-stripe";
 import { registerRobotsRoutes } from "./robots";
 import { registerSitemapRoutes } from "./sitemap";
@@ -16,6 +17,7 @@ export function registerApiRoutes(app: Hono) {
   registerBepusdtRoutes(app);
   registerEpayRoutes(app);
   registerAlipayRoutes(app);
+  registerAlipayFaceRoutes(app);
   registerStripeRoutes(app);
   registerRobotsRoutes(app);
   registerSitemapRoutes(app);
