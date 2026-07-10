@@ -1,5 +1,19 @@
 # Change Log
 
+## v1.4.8 (2026-07-10)
+
+### Features
+
+- **payment:** 新增 HashPay 加密货币支付网关，支持 USDT、USDC、ETH 等多种币种收款
+
+### Bug Fixes
+
+- **payment:** 修复 Telefunc 错误处理将 500 错误伪装为 403 的问题，改为透传原生错误响应
+
+### Documentation
+
+- **docs:** 新增 HashPay 支付接入教程
+
 ## v1.4.7 (2026-06-30)
 
 ### Features
