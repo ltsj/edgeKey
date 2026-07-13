@@ -1,5 +1,6 @@
 import { assertAdminAccess } from "../../../modules/auth/service";
 import { saveSiteSetting } from "../../../modules/site/service";
+import { throwAbortError } from "../../../lib/throw-abort-error";
 
 export async function onSaveSiteSettings(input: {
   siteName: string;
@@ -14,6 +15,10 @@ export async function onSaveSiteSettings(input: {
   headCode?: string;
   footerCode?: string;
 }) {
-  assertAdminAccess();
-  return saveSiteSetting(input);
+  try {
+    assertAdminAccess();
+    return await saveSiteSetting(input);
+  } catch (error) {
+    throwAbortError(error);
+  }
 }

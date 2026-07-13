@@ -1,5 +1,6 @@
 import { assertAdminAccess } from "../../../modules/auth/service";
 import { saveProduct } from "../../../modules/catalog/service";
+import { throwAbortError } from "../../../lib/throw-abort-error";
 
 export async function onSaveProduct(input: {
   id?: number;
@@ -19,6 +20,10 @@ export async function onSaveProduct(input: {
   sort?: number;
   purchaseNote?: string;
 }) {
-  assertAdminAccess();
-  return saveProduct(input);
+  try {
+    assertAdminAccess();
+    return await saveProduct(input);
+  } catch (error) {
+    throwAbortError(error);
+  }
 }
