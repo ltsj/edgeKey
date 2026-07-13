@@ -3,7 +3,6 @@
 
     <!-- Hero 区域 -->
     <section class="relative pt-8">
-      <img class="hero-img pointer-events-none" src="../../assets/home-n.png" alt="hero-img">
       <div class="relative rounded-2xl bg-base-100 shadow-md overflow-hidden border border-base-200/60">
         <!-- 背景渐变装饰 -->
         <div class="pointer-events-none absolute inset-0" aria-hidden="true">
