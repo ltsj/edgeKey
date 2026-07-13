@@ -31,7 +31,7 @@ export async function deliverOrder(prisma: PrismaClient, orderNo: string) {
   }
 
   try {
-    if (order.product.deliveryType === "MANUAL") {
+    if (order.product.deliveryType === "MANUAL" || order.product.deliveryType === "EXPRESS") {
       logger.info("manual_delivery_waiting", {
         event: "delivery.manual.waiting",
         orderNo: order.orderNo,
@@ -158,7 +158,7 @@ export async function adminDeliverOrder(prisma: PrismaClient, orderId: number, i
     throw conflictError("订单已发货，无需重复发货", "ORDER_ALREADY_DELIVERED");
   }
 
-  if (order.product.deliveryType !== "MANUAL") {
+  if (order.product.deliveryType !== "MANUAL" && order.product.deliveryType !== "EXPRESS") {
     return deliverOrder(prisma, order.orderNo);
   }
 
@@ -170,7 +170,7 @@ export async function adminDeliverOrder(prisma: PrismaClient, orderId: number, i
   await prisma.orderDelivery.create({
     data: {
       orderId: order.id,
-      deliveryType: "MANUAL",
+      deliveryType: order.product.deliveryType === "EXPRESS" ? "EXPRESS" : "MANUAL",
       contentSnapshot: content,
       status: "SUCCESS",
     },

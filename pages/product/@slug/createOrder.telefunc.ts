@@ -10,6 +10,7 @@ export async function onCreateOrder(input: {
   contactType: "EMAIL";
   contactValue: string;
   buyerNote?: string;
+  receiverInfo?: string;
   discountCode?: string;
 }) {
   try {

@@ -593,7 +593,7 @@ export async function handlePaymentNotify(
         select: { deliveryType: true },
       });
 
-      if (product?.deliveryType !== "MANUAL") {
+      if (product?.deliveryType !== "MANUAL" && product?.deliveryType !== "EXPRESS") {
         try {
           await deliverOrder(prisma, order.orderNo);
           message = "already paid; delivery retried";

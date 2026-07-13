@@ -54,7 +54,7 @@
                 :disabled="discountPreview.loading"
               />
               <button 
-                class="btn btn-outline btn-sm" 
+                class="btn btn-outline"
                 :disabled="!form.discountCode.trim() || discountPreview.loading"
                 @click="handlePreviewDiscount"
               >
@@ -64,6 +64,12 @@
           </label>
           <p v-if="discountPreview.error" class="-mt-2 text-xs text-error">{{ discountPreview.error }}</p>
           <p v-if="discountPreview.valid" class="-mt-2 text-xs text-orange-400">折扣码有效，优惠 {{ formatCents(discountPreview.discount) }}</p>
+
+          <label v-if="product.deliveryType === 'EXPRESS'" class="flex flex-col gap-1.5">
+            <span class="label-text font-medium">收货信息 <span class="text-error">*</span></span>
+            <textarea v-model="form.receiverInfo" class="textarea textarea-bordered w-full" rows="3" placeholder="请填写收货信息，例如：
+张三，13812341234，广东省深圳市xxx"></textarea>
+          </label>
 
           <label class="flex flex-col gap-1.5">
             <span class="label-text font-medium">备注</span>
@@ -128,6 +134,7 @@
           </p>
           <p v-else-if="product.deliveryType === 'FIXED_CARD'" class="text-sm text-success">自动发货，库存充足。</p>
           <p v-else-if="product.deliveryType === 'MANUAL'" class="text-sm text-success">{{ product.manualDeliveryHint || '支付后，客服将尽快为您处理订单，请耐心等待。' }}</p>
+          <p v-else-if="product.deliveryType === 'EXPRESS'" class="text-sm text-success">{{ product.manualDeliveryHint || '请填写收货信息，支付后管理员将安排快递发货。' }}</p>
 
           <AppButton variant="primary" :loading="submitting" :disabled="(!isFreeOrder && !paymentMethods.length) || (product.deliveryType === 'CARD_AUTO' && product.availableStock === 0)" @click="handleCreateOrder">
             {{ product.deliveryType === 'CARD_AUTO' && product.availableStock === 0 ? '已售罄' : isFreeOrder ? '免费获取' : '提交订单' }}
@@ -177,13 +184,14 @@ const form = reactive({
   quantity: product?.minBuy ?? 1,
   contactValue: "",
   buyerNote: "",
+  receiverInfo: "",
   discountCode: "",
   paymentProvider: paymentMethods[0]?.provider ?? "",
   paymentChannel: getDefaultPaymentChannel(paymentMethods[0]?.provider ?? ""),
 });
 
 function getDeliveryTypeLabel(type: string) {
-  return ({ CARD_AUTO: "自动发货", FIXED_CARD: "自动发货", MANUAL: "人工发货" } as Record<string, string>)[type] || type;
+  return ({ CARD_AUTO: "自动发货", FIXED_CARD: "自动发货", MANUAL: "人工发货", EXPRESS: "快递发货" } as Record<string, string>)[type] || type;
 }
 
 let mobile = false;
@@ -260,6 +268,11 @@ async function handleCreateOrder() {
     return;
   }
 
+  if (product.deliveryType === 'EXPRESS' && !form.receiverInfo.trim()) {
+    errorMessage.value = "收货信息不能为空";
+    return;
+  }
+
   submitting.value = true;
   errorMessage.value = "";
 
@@ -275,6 +288,7 @@ async function handleCreateOrder() {
       contactType: "EMAIL",
       contactValue: contactEmail,
       buyerNote: form.buyerNote,
+      receiverInfo: form.receiverInfo,
       discountCode: form.discountCode.trim() || undefined,
     });
 

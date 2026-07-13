@@ -122,6 +122,12 @@
               >
                 人工发货
               </span>
+              <span
+                v-else-if="product.deliveryType === 'EXPRESS'"
+                class="text-xs font-semibold px-2 py-0.5 rounded bg-violet-500/10 text-violet-600"
+              >
+                实体商品
+              </span>
               <div class="flex items-baseline gap-0.5">
                 <span class="text-[11px] font-bold text-red-500/60">¥</span>
                 <span class="text-xl font-bold text-red-500 leading-none">{{ formatCents(product.price) }}</span>

@@ -1,7 +1,7 @@
 import { getContext } from "telefunc";
 import type { PaymentProvider } from "../payment/types";
 import type { PrismaClient } from "../../generated/prisma/client";
-import { conflictError, notFoundError } from "../../lib/app-error";
+import { badRequestError, conflictError, notFoundError } from "../../lib/app-error";
 import { validateOrderInput } from "../../lib/validators/order";
 import { getAdminContext, logAdminOperation } from "../auth/service";
 import { getAdminProductById } from "../catalog/service";
@@ -47,6 +47,7 @@ export async function createOrder(input: {
   contactType: "EMAIL" | "QQ" | "TELEGRAM" | "OTHER";
   contactValue?: string;
   buyerNote?: string;
+  receiverInfo?: string;
   discountCode?: string;
 }) {
   const { prisma } = getOrderContext();
@@ -74,6 +75,10 @@ export async function createOrder(input: {
 
   if (product.deliveryType === "FIXED_CARD" && !product.fixedDeliveryContent?.trim()) {
     throw conflictError("商品固定发货内容未配置，暂不可购买", "PRODUCT_FIXED_CONTENT_MISSING");
+  }
+
+  if (product.deliveryType === "EXPRESS" && !input.receiverInfo?.trim()) {
+    throw badRequestError("收货信息不能为空", "RECEIVER_INFO_REQUIRED");
   }
 
   const orderNo = generateOrderNo();
@@ -112,6 +117,7 @@ export async function createOrder(input: {
       contactType: input.contactType,
       contactValue,
       buyerNote: input.buyerNote?.trim() || null,
+      receiverInfo: input.receiverInfo?.trim() || null,
       paymentProvider: input.paymentProvider,
       paymentChannel,
       discountCodeId,
@@ -184,6 +190,7 @@ export async function createOrder(input: {
     contactType: input.contactType,
     contactValue,
     buyerNote: input.buyerNote?.trim() || null,
+    receiverInfo: input.receiverInfo?.trim() || null,
     paymentProvider: input.paymentProvider,
     paymentChannel,
     discountCodeId,
@@ -255,7 +262,7 @@ export async function getOrderForQuery(
   // notify 与 return 几乎同时到达时，return 这次读取可能正好卡在
   // “订单已支付但异步发货还没写完”的瞬间。这里做一次短暂重查，
   // 优先把最终的 DELIVERED 状态和发货内容返回给页面，避免用户手动刷新。
-  if (order.product.deliveryType !== "MANUAL" && order.paymentStatus === "PAID" && order.deliveryStatus === "NOT_DELIVERED") {
+  if (order.product.deliveryType !== "MANUAL" && order.product.deliveryType !== "EXPRESS" && order.paymentStatus === "PAID" && order.deliveryStatus === "NOT_DELIVERED") {
     for (let index = 0; index < 3; index += 1) {
       await sleep(150);
       const refreshed = await findOrderWithProduct(client, orderNo);
@@ -457,6 +464,7 @@ export async function getAdminOrderById(id: number, prisma?: PrismaClient) {
     deliveryStatus: order.deliveryStatus,
     contactValue: order.contactValue,
     buyerNote: order.buyerNote,
+    receiverInfo: order.receiverInfo,
     createdAt: order.createdAt.toISOString(),
     paidAt: order.paidAt ? order.paidAt.toISOString() : null,
     deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,

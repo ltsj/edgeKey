@@ -28,6 +28,7 @@ enum ProductDeliveryType {
   CARD_AUTO
   FIXED_CARD
   MANUAL
+  EXPRESS
 }
 
 enum ProductStockMode {
@@ -93,6 +94,7 @@ enum DeliveryRecordType {
   CARD
   FIXED_CARD
   MANUAL
+  EXPRESS
 }
 
 enum DeliveryRecordStatus {
@@ -233,6 +235,7 @@ model Order {
   contactType         ContactType     @default(EMAIL)
   contactValue        String?
   buyerNote           String?
+  receiverInfo        String?
   paymentProvider     String
   paymentChannel      String?
   paymentOrderNo      String?
