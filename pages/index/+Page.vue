@@ -263,15 +263,3 @@ onUnmounted(() => {
   observer?.disconnect();
 });
 </script>
-
-<style>
-.hero-img {
-  width: 200px;
-  height: auto;
-  position: absolute;
-  top: -28px;
-  right: 12px;
-  z-index: 2;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
-}
-</style>
