@@ -85,6 +85,7 @@ export async function deliverOrder(prisma: PrismaClient, orderNo: string) {
           quantity: order.quantity,
           items: contents,
           toEmail: order.contactValue,
+          contactEmail: order.contactValue,
           buyerNote: order.buyerNote,
         });
       } catch (error) {
@@ -125,6 +126,7 @@ export async function deliverOrder(prisma: PrismaClient, orderNo: string) {
           queryToken: order.queryToken,
           productName: order.productNameSnapshot,
           toEmail: order.contactValue,
+          contactEmail: order.contactValue,
           errorMessage: getErrorMessage(error, "delivery failed"),
           buyerNote: order.buyerNote,
         });
@@ -193,6 +195,7 @@ export async function adminDeliverOrder(prisma: PrismaClient, orderId: number, i
         quantity: order.quantity,
         items: [content],
         toEmail: order.contactValue,
+        contactEmail: order.contactValue,
         buyerNote: order.buyerNote,
       });
     } catch (error) {

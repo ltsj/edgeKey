@@ -673,6 +673,7 @@ export async function handlePaymentNotify(
           productName: order.productNameSnapshot,
           amount: order.amount,
           toEmail: order.contactValue,
+          contactEmail: order.contactValue,
           buyerNote: order.buyerNote,
         });
       } catch (error) {

@@ -27,6 +27,7 @@ VALUES
   ('ORDER_PAID', '支付成功通知', '[{{siteName}}] 订单 {{orderNo}} 支付成功', '您的订单已支付成功。
 
 订单号：{{orderNo}}
+顾客邮箱：{{contactEmail}}
 商品：{{productName}}
 金额：{{amount}}
 备注：{{buyerNote}}
@@ -36,6 +37,7 @@ VALUES
   ('DELIVERY_SUCCESS', '发货成功通知', '[{{siteName}}] 订单 {{orderNo}} 已发货', '您的订单已完成发货。
 
 订单号：{{orderNo}}
+顾客邮箱：{{contactEmail}}
 商品：{{productName}}
 数量：{{quantity}}
 备注：{{buyerNote}}
@@ -47,6 +49,7 @@ VALUES
   ('DELIVERY_FAILED', '发货失败通知', '[{{siteName}}] 订单 {{orderNo}} 发货失败', '订单发货失败，请尽快处理。
 
 订单号：{{orderNo}}
+顾客邮箱：{{contactEmail}}
 商品：{{productName}}
 备注：{{buyerNote}}
 失败原因：{{errorMessage}}
